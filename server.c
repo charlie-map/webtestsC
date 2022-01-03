@@ -40,7 +40,7 @@ char *readpage(char *filename, int *length) {
 
 	if (!file) {
 		// assumes errorfile exists
-		FILE *errorfile = fopen("error.html", "r");
+		FILE *errorfile = fopen("./views/error.html", "r");
 
 		char *errorreturn = malloc(sizeof(char) * 6558);
 		fread(errorreturn, 1, 6558, errorfile);
@@ -48,19 +48,36 @@ char *readpage(char *filename, int *length) {
 		return errorreturn; // no file
 	}
 
-	int CURR_SIZE = 1024;
+	int CURR_SIZE = 1;
+	int curr_index = 0;
 
 	char buffer[CURR_SIZE]; // 1024 characters at a time
-	char *returnstring = malloc(sizeof(char) * CURR_SIZE);
+	char *returnstring;
+	char *currstring = malloc(sizeof(char) * CURR_SIZE);
 
-	while (fread(buffer, 1, 1024, file)) {
-		strcpy(returnstring, buffer);
+	while (fread(buffer, 1, 1, file)) {
+		strcpy(currstring + (sizeof(char) * curr_index), buffer);
 
-		CURR_SIZE += 1024;
+		CURR_SIZE ++;
+		curr_index++;
 
 		// increase return string size
-		returnstring = realloc(returnstring, sizeof(char) * CURR_SIZE);
+		currstring = realloc(currstring, sizeof(char) * CURR_SIZE);
 	}
+
+	// copy currstring over with added size
+	// second portion for the socket sending
+	int page_size = snprintf(NULL, 0, "%d", CURR_SIZE);
+
+	// calculate length of send
+	*length = sizeof(char) * CURR_SIZE + sizeof(char) * (58 + page_size);
+	returnstring = malloc(*length);
+	// copy in the size
+	sprintf(returnstring, "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: %d\n\n\n", CURR_SIZE);
+	// copy in currstring (moving the starte over by the amount currently in returnstring)
+	strcpy(returnstring + (sizeof(char) * strlen(returnstring)), currstring);
+
+	free(currstring);
 
 	return returnstring;
 }
@@ -154,7 +171,9 @@ int main() {
 
 			// make a continuous loop for new_fd while they are still alive
 			int *res_length = malloc(sizeof(int)), res_sent;
-			char *res = readpage("homepage.html", res_length);
+			char *res = readpage("./views/homepage.html", res_length);
+
+			printf("returned res %d: %s\n", *res_length, res);
 
 			*res_length = strlen(res);
 
