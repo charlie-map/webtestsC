@@ -51,36 +51,36 @@ char *readpage(char *filename, int *length) {
 		return errorreturn; // no file
 	}
 
-	int CURR_SIZE = 10;
-	int curr_index = 0;
+	size_t *bufferweight = malloc(sizeof(size_t));
+	char *getlinestr = malloc(sizeof(char) * 10);
+	char *buildstring = malloc(sizeof(char));
 
-	char buffer[CURR_SIZE]; // 1024 characters at a time
-	char *returnstring;
-	char *currstring = malloc(sizeof(char) * CURR_SIZE);
+	int reallinelen;
 
-	while (fread(buffer, 1, 10, file)) {
-		strcpy(currstring + (sizeof(char) * curr_index), buffer);
+	while ((reallinelen = getline(&getlinestr, bufferweight, file)) > 0) {
+		
+		buildstring = realloc(buildstring, sizeof(char) * (strlen(buildstring) + 1) + sizeof(char) * strlen(getlinestr));
+		strcpy(buildstring + (sizeof(char) * strlen(buildstring)), getlinestr);
 
-		CURR_SIZE += 10;
-		curr_index += 10;
-
-		// increase return string size
-		currstring = realloc(currstring, sizeof(char) * CURR_SIZE);
+		*length += reallinelen;
 	}
 
-	// copy currstring over with added size
+	// copy buildstring over with added size
 	// second portion for the socket sending
-	int page_size = snprintf(NULL, 0, "%d", CURR_SIZE);
+	int page_size = snprintf(NULL, 0, "%d", *length);
+	int html_chars = *length;
 
 	// calculate length of send
-	*length = sizeof(char) * CURR_SIZE + sizeof(char) * (58 + page_size);
-	returnstring = malloc(*length);
+	*length = sizeof(char) * *length + sizeof(char) * (58 + page_size);
+	char *returnstring = malloc(*length);
 	// copy in the size
-	sprintf(returnstring, "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: %d\n\n\n", CURR_SIZE);
-	// copy in currstring (moving the starte over by the amount currently in returnstring)
-	strcpy(returnstring + (sizeof(char) * strlen(returnstring)), currstring);
+	sprintf(returnstring, "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: %d\n\n\n", html_chars);
+	// copy in buildstring (moving the starte over by the amount currently in returnstring)
+	strcpy(returnstring + (sizeof(char) * strlen(returnstring)), buildstring);
 
-	free(currstring);
+	free(bufferweight);
+	free(getlinestr);
+	free(buildstring);
 
 	return returnstring;
 }
@@ -173,7 +173,7 @@ void *connection(void *addr_input) {
 
 	// make a continuous loop for new_fd while they are still alive
 	int *res_length = malloc(sizeof(int)), res_sent;
-	char *res = readpage("./views/homepage34.html", res_length);
+	char *res = readpage("./views/homepage.html", res_length);
 
 	*res_length = strlen(res);
 
@@ -187,7 +187,6 @@ void *connection(void *addr_input) {
 
 	close(*new_fd);
 	free(new_fd);
-	exit(0);
 }
 
 void *acceptor_function(void *sock_ptr) {
