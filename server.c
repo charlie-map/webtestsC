@@ -168,49 +168,32 @@ int main() {
 }
 
 void *connection(void *addr_input) {
-	char s[INET6_ADDRSTRLEN];
-	struct sockaddr_storage *their_addr = malloc(sizeof(struct sockaddr_storage));
-	*their_addr = *(struct sockaddr_storage *) addr_input;
 	int *new_fd = malloc(sizeof(int));
-	*new_fd = *(int *) (addr_input + sizeof(struct sockaddr_storage *));
+	*new_fd = *(int *) addr_input;
 
-	inet_ntop(their_addr->ss_family,
-	get_in_addr((struct sockaddr *) their_addr),
-	s, sizeof s);
-	printf("server: got connection from %s\n", s);
+	// make a continuous loop for new_fd while they are still alive
+	int *res_length = malloc(sizeof(int)), res_sent;
+	char *res = readpage("./views/homepage34.html", res_length);
 
-	if (!fork()) { // this is the child process
+	*res_length = strlen(res);
 
-		// close(sock_fd); // child doesn't need the listener
-		// if (send(new_fd, "Hello, world!", 13, 0) == -1)
-		// 	perror("send");
-
-		// make a continuous loop for new_fd while they are still alive
-		int *res_length = malloc(sizeof(int)), res_sent;
-		char *res = readpage("./views/homepage34.html", res_length);
-
-		*res_length = strlen(res);
-
-		// use for making sure the entire page is sent
-		while ((res_sent = send(*new_fd, res, *res_length, 0)) < *res_length) {
-			//printf("trying to send %d\n", res_sent);
-		}
-
-		free(res_length);
-		free(res);
-
-		close(*new_fd);
-		exit(0);
+	// use for making sure the entire page is sent
+	while ((res_sent = send(*new_fd, res, *res_length, 0)) < *res_length) {
+		//printf("trying to send %d\n", res_sent);
 	}
 
-	close(*new_fd);  // parent doesn't need this
-	free(their_addr);
+	free(res_length);
+	free(res);
+
+	close(*new_fd);
 	free(new_fd);
+	exit(0);
 }
 
 void *acceptor_function(void *sock_ptr) {
 	int sock_fd = *(int *) sock_ptr;
 	int *new_fd = malloc(sizeof(int));
+	char s[INET6_ADDRSTRLEN];
 	struct sockaddr_storage their_addr; // connector's address information
 	socklen_t sin_size;
 
@@ -224,12 +207,14 @@ void *acceptor_function(void *sock_ptr) {
 			continue;
 		}
 
+		inet_ntop(their_addr.ss_family,
+		get_in_addr((struct sockaddr *) &their_addr),
+		s, sizeof s);
+		printf("server: got connection from %s\n", s);
+
 		// at this point we can send the user into their own thread
 		pthread_t socket;
-		void **input = malloc(sizeof(struct sockaddr) + sizeof(int));
-		input[0] = &their_addr;
-		input[1] = new_fd;
-		pthread_create(&socket, NULL, &connection, input);
+		pthread_create(&socket, NULL, &connection, new_fd);
 	}
 
 	return 0;
