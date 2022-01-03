@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <pthread.h>
 
 // all socket related packages
 #include <sys/types.h>
@@ -13,7 +14,7 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#define PORT "6969" // the port users will connect to
+#define PORT "8000" // the port users will connect to
 #define BACKLOG 10    // how many pending connections will queue
 
 void sigchld_handler(int s) {
@@ -34,6 +35,8 @@ void *get_in_addr(struct sockaddr *sa) {
 	return &(((struct sockaddr_in6 *) sa)->sin6_addr);
 }
 
+void *acceptor_function(void *sock_ptr);
+
 // reads all the text in a file into an allocated char *
 char *readpage(char *filename, int *length) {
 	FILE *file = fopen(filename, "r");
@@ -42,24 +45,24 @@ char *readpage(char *filename, int *length) {
 		// assumes errorfile exists
 		FILE *errorfile = fopen("./views/error.html", "r");
 
-		char *errorreturn = malloc(sizeof(char) * 6558);
-		fread(errorreturn, 1, 6558, errorfile);
+		char *errorreturn = malloc(sizeof(char) * 6544);
+		fread(errorreturn, 1, 6544, errorfile);
 
 		return errorreturn; // no file
 	}
 
-	int CURR_SIZE = 1;
+	int CURR_SIZE = 10;
 	int curr_index = 0;
 
 	char buffer[CURR_SIZE]; // 1024 characters at a time
 	char *returnstring;
 	char *currstring = malloc(sizeof(char) * CURR_SIZE);
 
-	while (fread(buffer, 1, 1, file)) {
+	while (fread(buffer, 1, 10, file)) {
 		strcpy(currstring + (sizeof(char) * curr_index), buffer);
 
-		CURR_SIZE ++;
-		curr_index++;
+		CURR_SIZE += 10;
+		curr_index += 10;
 
 		// increase return string size
 		currstring = realloc(currstring, sizeof(char) * CURR_SIZE);
@@ -85,13 +88,11 @@ char *readpage(char *filename, int *length) {
 int main() {
 
 	// connection stuff
-	int sock_fd, new_fd; // listen on sock_fd, client on new_fd
+	int *sock_fd = malloc(sizeof(int)); // listen on sock_fd
 	struct addrinfo hints, *servinfo, *p;
 	struct sockaddr_storage their_addr; // connector's address information
-	socklen_t sin_size;
 	struct sigaction sa;
 	int yes=1;
-	char s[INET6_ADDRSTRLEN];
 	int status;
 
 	memset(&hints, 0, sizeof(hints)); // make sure the struct is empty
@@ -115,20 +116,20 @@ int main() {
 
 	// find a working socket
 	for (p = servinfo; p != NULL; p = p->ai_next) {
-		if ((sock_fd = socket(p->ai_family, p->ai_socktype,
+		if ((*sock_fd = socket(p->ai_family, p->ai_socktype,
 			p->ai_protocol)) == -1) {
 			perror("server: socket");
 			continue;
 		}
 
-		if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes,
+		if (setsockopt(*sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes,
 			sizeof(int)) == -1) {
 			perror("setsockopt");
 			exit(1);
 		}
 
-		if (bind(sock_fd, p->ai_addr, p->ai_addrlen) == -1) {
-			close(sock_fd);
+		if (bind(*sock_fd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(*sock_fd);
 			perror("server: bind");
 			continue;
 		}
@@ -136,6 +137,8 @@ int main() {
 		break;
 	}
 
+
+	printf("%d check\n", *sock_fd);
 	freeaddrinfo(servinfo); // all done with this structure
 
 	if (p == NULL)  {
@@ -143,53 +146,90 @@ int main() {
 		exit(1);
 	}
 
-	if (listen(sock_fd, BACKLOG) == -1) {
+	if (listen(*sock_fd, BACKLOG) == -1) {
 		perror("listen");
 		exit(1);
 	}
 
 	printf("server go vroom\n");
 
+	// split acceptor
+	pthread_t accept_thread;
+	int check = pthread_create(&accept_thread, NULL, &acceptor_function, sock_fd);
+
+	// wait until a user tries to close the server
+	while(getchar() != '0');
+	pthread_cancel(accept_thread);
+	pthread_join(accept_thread, NULL);
+
+	free(sock_fd);
+
+	return 0;
+}
+
+void *connection(void *addr_input) {
+	char s[INET6_ADDRSTRLEN];
+	struct sockaddr_storage *their_addr = malloc(sizeof(struct sockaddr_storage));
+	*their_addr = *(struct sockaddr_storage *) addr_input;
+	int *new_fd = malloc(sizeof(int));
+	*new_fd = *(int *) (addr_input + sizeof(struct sockaddr_storage *));
+
+	inet_ntop(their_addr->ss_family,
+	get_in_addr((struct sockaddr *) their_addr),
+	s, sizeof s);
+	printf("server: got connection from %s\n", s);
+
+	if (!fork()) { // this is the child process
+
+		// close(sock_fd); // child doesn't need the listener
+		// if (send(new_fd, "Hello, world!", 13, 0) == -1)
+		// 	perror("send");
+
+		// make a continuous loop for new_fd while they are still alive
+		int *res_length = malloc(sizeof(int)), res_sent;
+		char *res = readpage("./views/homepage34.html", res_length);
+
+		*res_length = strlen(res);
+
+		// use for making sure the entire page is sent
+		while ((res_sent = send(*new_fd, res, *res_length, 0)) < *res_length) {
+			//printf("trying to send %d\n", res_sent);
+		}
+
+		free(res_length);
+		free(res);
+
+		close(*new_fd);
+		exit(0);
+	}
+
+	close(*new_fd);  // parent doesn't need this
+	free(their_addr);
+	free(new_fd);
+}
+
+void *acceptor_function(void *sock_ptr) {
+	int sock_fd = *(int *) sock_ptr;
+	int *new_fd = malloc(sizeof(int));
+	struct sockaddr_storage their_addr; // connector's address information
+	socklen_t sin_size;
+
+	printf("listening");
+
 	while (1) {
 		sin_size = sizeof(their_addr);
-		new_fd = accept(sock_fd, (struct sockaddr *) &their_addr, &sin_size);
-		if (new_fd == -1) {
+		*new_fd = accept(sock_fd, (struct sockaddr *) &their_addr, &sin_size);
+		if (*new_fd == -1) {
 			perror("accept");
 			continue;
 		}
 
-		inet_ntop(their_addr.ss_family,
-		get_in_addr((struct sockaddr *)&their_addr),
-		s, sizeof s);
-		printf("server: got connection from %s\n", s);
-
-		if (!fork()) { // this is the child process
-
-			// close(sock_fd); // child doesn't need the listener
-			// if (send(new_fd, "Hello, world!", 13, 0) == -1)
-			// 	perror("send");
-
-			// make a continuous loop for new_fd while they are still alive
-			int *res_length = malloc(sizeof(int)), res_sent;
-			char *res = readpage("./views/homepage.html", res_length);
-
-			printf("returned res %d: %s\n", *res_length, res);
-
-			*res_length = strlen(res);
-
-			// use for making sure the entire page is sent
-			while ((res_sent = send(new_fd, res, *res_length, 0)) < *res_length) {
-				printf("trying to send %d\n", res_sent);
-			}
-
-			free(res_length);
-			free(res);
-
-			close(new_fd);
-			exit(0);
-		}
-
-		close(new_fd);  // parent doesn't need this
+		// at this point we can send the user into their own thread
+		pthread_t socket;
+		void **input = malloc(sizeof(struct sockaddr) + sizeof(int));
+		input[0] = &their_addr;
+		input[1] = new_fd;
+		pthread_create(&socket, NULL, &connection, input);
 	}
 
 	return 0;
