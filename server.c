@@ -14,8 +14,9 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#define PORT "8080" // the port users will connect to
+#define PORT "6969" // the port users will connect to
 #define BACKLOG 10    // how many pending connections will queue
+#define MAXLINE 4096 // max read from socket HTTP request
 
 void sigchld_handler(int s) {
 	// waitpid() might overwrite errno, so we save and restore it:
@@ -45,15 +46,17 @@ char *readpage(char *filename, int *length) {
 		// assumes errorfile exists
 		FILE *errorfile = fopen("./views/error.html", "r");
 
-		char *errorreturn = malloc(sizeof(char) * 6544);
-		fread(errorreturn, 1, 6544, errorfile);
+		*length = 6544;
+
+		char *errorreturn = malloc(sizeof(char) * *length);
+		fread(errorreturn, 1, *length, errorfile);
 
 		return errorreturn; // no file
 	}
 
 	size_t *bufferweight = malloc(sizeof(size_t));
 	*bufferweight = 0;
-	char *getlinestr = malloc(sizeof(char) * 10);
+	char *getlinestr = "";
 	char *buildstring = "";
 
 	int reallinelen;
@@ -93,6 +96,10 @@ char *readpage(char *filename, int *length) {
 	free(buildstring);
 
 	return returnstring;
+}
+
+void close_threads() {
+
 }
 
 int main() {
@@ -169,6 +176,7 @@ int main() {
 
 	// wait until a user tries to close the server
 	while(getchar() != '0');
+	close_threads();
 	pthread_cancel(accept_thread);
 	pthread_join(accept_thread, NULL);
 
@@ -187,14 +195,31 @@ void *connection(void *addr_input) {
 	char *res = readpage("./views/homepage.html", res_length);
 
 	// use for making sure the entire page is sent
-	while ((res_sent = send(*new_fd, res, *res_length, 0)) < *res_length) {
-		//printf("trying to send %d\n", res_sent);
-	}
+	while ((res_sent = send(*new_fd, res, *res_length, 0)) < *res_length);
 
 	free(res_length);
 	free(res);
 
+	int recv_res = 1;
+	char *buffer = malloc(sizeof(char) * MAXLINE);
+	int buffer_len = MAXLINE;
+
+	while (recv_res = recv(*new_fd, buffer, buffer_len, 0)) {
+		if (recv_res == -1) {
+			perror("receive: ");
+			continue;
+		}
+
+		if (buffer_len == 0)
+			continue;
+
+		// otherwise we have data!
+		printf("test %s\n", (char *) buffer);
+		
+	}	
+
 	close(*new_fd);
+	free(buffer);
 	free(new_fd);
 }
 
@@ -224,6 +249,8 @@ void *acceptor_function(void *sock_ptr) {
 		pthread_t socket;
 		pthread_create(&socket, NULL, &connection, new_fd);
 	}
+
+	free(new_fd);
 
 	return 0;
 }

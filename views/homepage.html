@@ -1,5 +1,565 @@
 <html>
+	<head>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300&display=swap" rel="stylesheet">
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	</head>
 	<body>
-		<h1>Test</h1>
+		<style>
+			:root {
+				--color-bg: #0d7377;
+				--color-blue: #d44f0e;
+				--color-shadow: #211842;
+				--color-dark-orange: #9e3400;
+				--color-orange: #d44f0e;
+
+				/* type writer */
+				--blue: #14ffec;
+				--blue-dark: #17a398;
+				--key: #fff;
+				--paper: #eef0fd;
+				--text: #d3d4ec;
+				--tool: #d44f0e;
+				--duration: 3s;
+			}
+
+			html {
+				box-sizing: border-box;
+				-webkit-font-smoothing: antialiased;
+			}
+
+			*:before, *:after {
+				 box-sizing: inherit;
+			}
+
+			* {
+				font-family: 'Montserrat', sans-serif;
+				margin: 0;
+				padding: 0;
+				box-sizing: inherit;
+			}
+
+			body {
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				background: var(--color-bg);
+
+				overflow-x: hidden;
+				overflow-y: hidden;
+			}
+
+			@media screen and (max-width: 700px) {
+				body {
+					justify-content: flex-start;
+				}
+			}
+
+			.profile-connect {
+				position: absolute;
+				bottom: 100px;
+				right: 190px;
+			}
+
+			.typer {
+				width: 100%;
+			}
+
+			.typer div {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+			}
+
+			/* type writer effect based on Geoff Graham */
+			.typer h1 {
+				display: inline-block;
+				overflow: hidden;
+				padding: 0 0 0 10px;
+				margin: 0 auto;
+			}
+
+			.blinkerh1 {
+				width: 5px;
+				height: 38px;
+				animation:
+					blink-caret 0.78s step-end 5;
+			}
+
+			.typer h2 {
+				display: inline;
+				overflow: hidden;
+				margin: 0 auto;
+				letter-spacing: .15em;
+			}
+
+			.blinkerh2 {
+				width: 4px;
+				height: 28px;
+				animation-delay: 4s;
+				animation:
+					blink-caret 0.78s step-end infinite;
+			}
+
+			@keyframes blink-caret {
+				from, to { border-color: transparent; }
+				50% { border-right: .15em solid #d44f0e; }
+			}
+
+			/* based on Aaron Iker's typewriter */
+			.typewriter {
+				margin-top: 30px;
+				position: relative;
+				animation: bounce var(--duration) linear infinite;
+			}
+
+			.typewriter:hover {
+				cursor: pointer;
+			}
+
+			.typewriter .slide {
+				width: 92px;
+				height: 20px;
+				border-radius: 3px;
+				margin-left: 14px;
+				transform: translateX(14px);
+				background: linear-gradient(var(--blue), var(--blue-dark));
+				animation: slide var(--duration) ease infinite;
+			}
+
+			.typewriter .slide:before, .typewriter .slide:after, .typewriter .slide i:before {
+				content: '';
+				position: absolute;
+				background: var(--tool);
+			}
+
+			.typewriter .slide:before {
+				width: 2px;
+				height: 8px;
+				top: 6px;
+				left: 100%;
+			}
+
+			.typewriter .slide:after {
+				left: 94px;
+				top: 3px;
+				height: 14px;
+				width: 6px;
+				border-radius: 3px;
+			}
+
+			.typewriter .slide i {
+				display: block;
+				position: absolute;
+				right: 100%;
+				width: 6px;
+				height: 4px;
+				top: 4px;
+				background: var(--tool);
+			}
+
+			.typewriter .slide i:before {
+				right: 100%;
+				top: -2px;
+				width: 4px;
+				border-radius: 2px;
+				height: 14px;
+			}
+
+			.typewriter .paper {
+				position: absolute;
+				left: 24px;
+				top: -26px;
+				width: 40px;
+				height: 46px;
+				border-radius: 5px;
+				background: var(--paper);
+				transform: translateY(46px);
+				animation: paper var(--duration) linear infinite;
+			}
+
+			.typewriter .paper:before {
+				content: '';
+				position: absolute;
+				left: 6px;
+				right: 6px;
+				top: 7px;
+				border-radius: 2px;
+				height: 4px;
+				transform: scaleY(0.8);
+				background: var(--text);
+				box-shadow: 0 12px 0 var(--text), 0 24px 0 var(--text), 0 36px 0 var(--text);
+			}
+
+			.typewriter .keyboard {
+				width: 120px;
+				height: 56px;
+				margin-top: -10px;
+				z-index: 1;
+				position: relative;
+			}
+
+			.typewriter .keyboard:before, .typewriter .keyboard:after {
+				content: '';
+				position: absolute;
+			}
+
+			.typewriter .keyboard:before {
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				border-radius: 7px;
+				background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+				transform: perspective(10px) rotateX(2deg);
+				transform-origin: 50% 100%;
+			}
+
+			.typewriter .keyboard:after {
+				left: 2px;
+				top: 25px;
+				width: 11px;
+				height: 4px;
+				border-radius: 2px;
+				box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+				animation: keyboard var(--duration) linear infinite;
+			}
+
+			@keyframes bounce {
+				85%, 92%, 100% {
+					transform: translateY(0);
+				}
+				89% {
+					transform: translateY(-4px);
+				}
+				95% {
+					transform: translateY(2px);
+				}
+			}
+
+			@keyframes slide {
+				5% {
+					transform: translateX(14px);
+				}
+				15%, 30% {
+					transform: translateX(6px);
+				}
+				40%, 55% {
+					transform: translateX(0);
+				}
+				65%, 70% {
+					transform: translateX(-4px);
+				}
+				80%, 89% {
+					transform: translateX(-12px);
+				}
+				100% {
+					transform: translateX(14px);
+				}
+			}
+
+			@keyframes paper {
+				5% {
+					transform: translateY(46px);
+				}
+				20%, 30% {
+					transform: translateY(34px);
+				}
+				40%, 55% {
+					transform: translateY(22px);
+				}
+				65%, 70% {
+					transform: translateY(10px);
+				}
+				80%, 85% {
+					transform: translateY(0);
+				}
+				92%, 100% {
+					transform: translateY(46px);
+				}
+			}
+
+			@keyframes keyboard {
+				5%, 12%, 21%, 30%, 39%, 48%, 57%, 66%, 75%, 84% {
+					box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+				}
+				9% {
+					box-shadow: 15px 2px 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+				}
+				18% {
+					box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 2px 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+				}
+				27% {
+					box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 12px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+				}
+				36% {
+					box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 12px 0 var(--key), 60px 12px 0 var(--key), 68px 12px 0 var(--key), 83px 10px 0 var(--key);
+				}
+				45% {
+					box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 2px 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+				}
+				54% {
+					box-shadow: 15px 0 0 var(--key), 30px 2px 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+				}
+				63% {
+					box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 12px 0 var(--key);
+				}
+				72% {
+					box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 2px 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+				}
+				81% {
+					box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 12px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+				}
+			}
+
+			#letter {
+				transform: scale(0.8);
+				position: absolute;
+				bottom: 20px;
+				right: 180px;
+			}
+
+			.letter-image {
+				position: absolute;
+				bottom: 0px;
+				left: 0px;
+				width: 200px;
+				height: 200px;
+				/*-webkit-transform: translate(-50%, -50%);
+				-moz-transform: translate(-50%, -50%);
+				transform: translate(-50%, -50%);*/
+				cursor: pointer;
+			}
+
+			.shadow {
+				position: absolute;
+				top: 200px;
+				left: 50%;
+				width: 400px;
+				height: 30px;
+				transition: .4s;
+				transform: translateX(-50%);
+				-webkit-transition: .4s;
+				-webkit-transform: translateX(-50%);
+				-moz-transition: .4s;
+				-moz-transform: translateX(-50%);
+				
+				border-radius: 100%;
+				background: radial-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.0), rgba(0,0,0,0.0));
+			}
+
+			.animated-mail {
+				position: absolute;
+				height: 150px;
+				width: 200px;
+				-webkit-transition: .4s;
+				-moz-transition: .4s;
+				transition: .4s;
+			}
+
+			.animated-mail .body {
+				position: absolute;
+				bottom: 0;
+				width: 0;
+				height: 0;
+				border-style: solid;
+				border-width: 0 0 100px 200px;
+				border-color: transparent transparent #d96c36 transparent;
+				z-index: 2;
+			}
+
+			.animated-mail .top-fold {
+				position: absolute;
+				top: 50px;
+				width: 0;
+				height: 0;
+				border-style: solid;
+				border-width: 50px 100px 0 100px;
+				-webkit-transform-origin: 50% 0%;
+				-webkit-transition: transform .4s .4s, z-index .2s .4s;
+				-moz-transform-origin: 50% 0%;
+				-moz-transition: transform .4s .4s, z-index .2s .4s;
+				transform-origin: 50% 0%;
+				transition: transform .4s .4s, z-index .2s .4s;
+				border-color: #c14f16 transparent transparent transparent;
+				z-index: 2;
+			}
+
+			.animated-mail .back-fold {
+				position: absolute;
+				bottom: 0;
+				width: 200px;
+				height: 100px;
+				background: #c14f16;
+				z-index: 0;
+			}
+				
+			.animated-mail .left-fold {
+				position: absolute;
+				bottom: 0;
+				width: 0;
+				height: 0;
+				border-style: solid;
+				border-width: 50px 0 50px 100px;
+				border-color: transparent transparent transparent #c65924;
+				z-index: 2;
+			}
+				
+			.animated-mail .letter {
+				left: 20px;
+				bottom: 0px;
+				position: absolute;
+				width: 160px;
+				height: 60px;
+				background: white;
+				z-index: 1;
+				overflow: hidden;
+				-webkit-transition: .4s .2s;
+				-moz-transition: .4s .2s;
+				transition: .4s .2s;
+			}
+					
+			.animated-mail .letter .letter-border {
+				height: 10px;
+				width: 100%;
+				background: repeating-linear-gradient(
+					-45deg,
+					#c14f16,
+					#c14f16 8px,
+					transparent 8px,
+					transparent 18px
+				);
+			}
+					
+			.animated-mail .letter .letter-title {
+				font-weight: 800;
+				font-size: 20px;
+				margin-top: 10px;
+				margin-left: 5px;
+				height: 18px;
+				width: 80%;
+			}
+
+			.animated-mail .letter .letter-context {
+				margin-top: 10px;
+				margin-left: 5px;
+				height: 10px;
+				width: 30%;
+				background: #c14f16;
+			}
+
+			.animated-mail .letter .letter-context2 {
+				margin-top: 10px;
+				margin-left: 5px;
+				height: 10px;
+				width: 60%;
+				background: #c14f16;
+			}
+					
+			.animated-mail .letter .letter-stamp {
+				margin-top: 10px;
+				margin-left: 120px;
+				border-radius: 100%;
+				height: 30px;
+				width: 30px;
+				background: #c14f16;
+				opacity: 0.3;
+			}
+
+			.letter-image:hover .animated-mail {
+				transform: translateY(50px);
+				-webkit-transform: translateY(50px);
+				-moz-transform: translateY(50px);
+			}
+					
+			.letter-image:hover .animated-mail .top-fold {
+				transition: transform .4s, z-index .2s;
+				transform: rotateX(180deg);
+				-webkit-transition: transform .4s, z-index .2s;
+				-webkit-transform: rotateX(180deg);
+				-moz-transition: transform .4s, z-index .2s;
+				-moz-transform: rotateX(180deg);
+				z-index: 0;
+			}
+					
+			.letter-image:hover .animated-mail .letter {
+				height: 180px;
+			}
+
+			.letter-image:hover .shadow {
+				width: 250px;
+			}
+		</style>
+
+		<div class="typer">
+			<div>
+				<div>
+					<h1 class="header-typer"></h1><h1 class="blinkerh1"></h1>
+				</div>
+			</div>
+			<div>
+				<div>
+					<h2 class="header-typer2"></h2>
+				</div>
+			</div>
+		</div>
+
+		<div id="letter">
+			<div class="letter-image">
+				<div class="animated-mail">
+					<div class="back-fold"></div>
+					<div class="letter">
+						<div class="letter-border"></div>
+						<div class="letter-title">charlie-map</div>
+						<div class="letter-context"></div>
+						<div class="letter-context2"></div>
+						<div class="letter-stamp">
+							<div class="letter-stamp-inner"></div>
+						</div>
+					</div>
+					<div class="top-fold"></div>
+					<div class="body"></div>
+					<div class="left-fold"></div>
+				</div>
+				<div class="shadow"></div>
+			</div>
+		</div>
+
+		<div class="typewriter">
+			<div class="slide"><i></i></div>
+			<div class="paper"></div>
+			<div class="keyboard"></div>
+		</div>
+
+		<div class="profile-connect">
+			<h3>Made by</h3>
+		</div>
+
+		<script>
+			let h1 = "Test your true speed";
+			let h2 = "Click the typewriter to start";
+			// text animation
+			function type(curr_string, curr_index, element) {
+				if (typeof curr_string != "string" && curr_index >= curr_string.length)
+					return;
+
+				$(element).append(curr_string[curr_index]);
+
+				setTimeout(type, 100, curr_string, curr_index + 1, element);
+			}
+
+			type(h1, 0, $(".header-typer"));
+			setTimeout(function(header, start, element) {
+				$(".header-typer2").after("<h2 class='blinkerh2'></h2>");
+				type(header, start, element);
+			}, 4000, h2, 0, $(".header-typer2"));
+
+			$(".typewriter").click(function() {
+				$.get("/typingtest");
+			});
+		</script>
 	</body>
 </html>
