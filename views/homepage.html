@@ -558,7 +558,23 @@
 			}, 4000, h2, 0, $(".header-typer2"));
 
 			$(".typewriter").click(function() {
-				$.get("/typingtest");
+				$.get("/typingtest", (response) => {
+					// REPLACE ENTIRE PAGE
+					let head_start = response.indexOf("<head>") + 6;
+					let head_end = response.indexOf("</head>");
+
+					let head = response.slice(head_start, head_end);
+
+					let body_start = response.indexOf("<body>") + 6;
+					let body_end = response.indexOf("</body>");
+
+					let body = response.slice(body_start, body_end);
+
+					console.log(document.getElementsByTagName("head"));
+
+					document.getElementsByTagName("head")[0].innerHTML = head;
+					document.getElementsByTagName("body")[0].innerHTML = body;
+				});
 			});
 		</script>
 	</body>

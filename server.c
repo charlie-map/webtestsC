@@ -42,17 +42,9 @@ void *acceptor_function(void *sock_ptr);
 char *readpage(char *filename, int *length) {
 	FILE *file = fopen(filename, "r");
 
-	if (!file) {
-		// assumes errorfile exists
-		FILE *errorfile = fopen("./views/error.html", "r");
-
-		*length = 6544;
-
-		char *errorreturn = malloc(sizeof(char) * *length);
-		fread(errorreturn, 1, *length, errorfile);
-
-		return errorreturn; // no file
-	}
+	if (!file)
+		// error case -- assumes error.html exists
+		file = fopen("./views/error.html", "r");
 
 	size_t *bufferweight = malloc(sizeof(size_t));
 	*bufferweight = 0;
@@ -185,25 +177,77 @@ int main() {
 	return 0;
 }
 
-void *connection(void *addr_input) {
-	int *new_fd = malloc(sizeof(int));
-	*new_fd = *(int *) addr_input;
+char *parse_http(char *full_req) {
+	// regex_t regex;
+	// int regerr_check;
 
-	// make a continuous loop for new_fd while they are still alive
+	// regerr_check = regcomp(&regex, " /w+", 0);
+
+	// size_t nmatch = 2;
+	// regmatch_t pmatch[2];
+
+	// int regger_check = regexec(&regex, full_req, nmatch, pmatch, 0);
+
+	// if (pmatch[1].rm_so) {
+		
+	// }
+
+	int find_req_url = 0;
+
+	while ((int) full_req[find_req_url] != 32)
+		find_req_url++;
+
+	find_req_url++;
+
+	int req_url_size = 8;
+	int req_url_index = 0;
+	char *req_url = malloc(sizeof(char) * req_url_size);
+
+	while ((int) full_req[find_req_url + req_url_index] != 32) {
+		req_url[req_url_index] = full_req[find_req_url + req_url_index];
+
+		req_url_index++;
+
+		if (req_url_index == req_url_size) {
+			req_url_size *= 2;
+			req_url = realloc(req_url, sizeof(char) * req_url_size);
+		}
+	}
+
+	req_url[req_url_index] = '\0';
+
+	return req_url;
+}
+
+int send_page(int *new_fd, char *request) {
 	int *res_length = malloc(sizeof(int)), res_sent;
 	*res_length = 0;
-	char *res = readpage("./views/homepage.html", res_length);
+
+	char *res;
+	// homepage
+	if (strcmp(request, "/") == 0)
+		res = readpage("./views/homepage.html", res_length);
+	else if (strcmp(request, "/typeingtest") == 0)
+		res = readpage("./views/test.html", res_length);
+	else
+		res = readpage("./views/error.html", res_length);
 
 	// use for making sure the entire page is sent
 	while ((res_sent = send(*new_fd, res, *res_length, 0)) < *res_length);
 
 	free(res_length);
 	free(res);
+}
+
+void *connection(void *addr_input) {
+	int *new_fd = malloc(sizeof(int));
+	*new_fd = *(int *) addr_input;
 
 	int recv_res = 1;
 	char *buffer = malloc(sizeof(char) * MAXLINE);
 	int buffer_len = MAXLINE;
 
+	// make a continuous loop for new_fd while they are still alive
 	while (recv_res = recv(*new_fd, buffer, buffer_len, 0)) {
 		if (recv_res == -1) {
 			perror("receive: ");
@@ -214,8 +258,10 @@ void *connection(void *addr_input) {
 			continue;
 
 		// otherwise we have data!
-		printf("test %s\n", (char *) buffer);
-		
+		char *request = parse_http(buffer);
+		printf("test %s\n", request);
+
+		send_page(new_fd, request);
 	}	
 
 	close(*new_fd);
