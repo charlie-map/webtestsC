@@ -79,16 +79,14 @@ char *readpage(char *filename, int *length) {
 	int page_size = snprintf(NULL, 0, "%d", *length);
 	int html_chars = *length;
 
-	printf("test %d\n", html_chars);
-
 	// calculate length of send
-	*length = sizeof(char) * html_chars + sizeof(char) * (58 + page_size);
+	*length = sizeof(char) * html_chars + sizeof(char) * (59 + page_size);
 	char *returnstring = malloc(sizeof(char) * *length);
 
 	// copy in the size
 	sprintf(returnstring, "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: %d\n\n\n", html_chars);
 	// copy in buildstring (moving the starte over by the amount currently in returnstring)
-	strcpy(returnstring + (sizeof(char) * strlen(returnstring)), buildstring);
+	strcpy(returnstring + sizeof(char) * (58 + page_size), buildstring);
 
 	free(bufferweight);
 	free(getlinestr);
