@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#define PORT "8000" // the port users will connect to
+#define PORT "8080" // the port users will connect to
 #define BACKLOG 10    // how many pending connections will queue
 
 void sigchld_handler(int s) {
@@ -52,17 +52,26 @@ char *readpage(char *filename, int *length) {
 	}
 
 	size_t *bufferweight = malloc(sizeof(size_t));
+	*bufferweight = 0;
 	char *getlinestr = malloc(sizeof(char) * 10);
-	char *buildstring = malloc(sizeof(char));
+	char *buildstring = "";
 
 	int reallinelen;
 
 	while ((reallinelen = getline(&getlinestr, bufferweight, file)) > 0) {
 		
-		buildstring = realloc(buildstring, sizeof(char) * (strlen(buildstring) + 1) + sizeof(char) * strlen(getlinestr));
-		strcpy(buildstring + (sizeof(char) * strlen(buildstring)), getlinestr);
+		int new_buildsize = sizeof(char) * (strlen(buildstring) + 1) + sizeof(char) * strlen(getlinestr);
+		if (strlen(buildstring) == 0) {
+			buildstring = malloc(new_buildsize);
+			strcpy(buildstring, getlinestr);
+			buildstring[new_buildsize - 1] = '\0';
+		} else {
+			buildstring = realloc(buildstring, new_buildsize);
+			strcpy(buildstring + (sizeof(char) * strlen(buildstring)), getlinestr);
+		}
 
 		*length += reallinelen;
+		*bufferweight = 0;
 	}
 
 	// copy buildstring over with added size
@@ -70,9 +79,12 @@ char *readpage(char *filename, int *length) {
 	int page_size = snprintf(NULL, 0, "%d", *length);
 	int html_chars = *length;
 
+	printf("test %d\n", html_chars);
+
 	// calculate length of send
-	*length = sizeof(char) * *length + sizeof(char) * (58 + page_size);
-	char *returnstring = malloc(*length);
+	*length = sizeof(char) * html_chars + sizeof(char) * (58 + page_size);
+	char *returnstring = malloc(sizeof(char) * *length);
+
 	// copy in the size
 	sprintf(returnstring, "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: %d\n\n\n", html_chars);
 	// copy in buildstring (moving the starte over by the amount currently in returnstring)
@@ -173,9 +185,8 @@ void *connection(void *addr_input) {
 
 	// make a continuous loop for new_fd while they are still alive
 	int *res_length = malloc(sizeof(int)), res_sent;
+	*res_length = 0;
 	char *res = readpage("./views/homepage.html", res_length);
-
-	*res_length = strlen(res);
 
 	// use for making sure the entire page is sent
 	while ((res_sent = send(*new_fd, res, *res_length, 0)) < *res_length) {
