@@ -226,11 +226,7 @@ int send_page(int *new_fd, char *request) {
 	char *res;
 	// homepage
 	if (strcmp(request, "/") == 0)
-		res = readpage("./views/homepage.html", res_length);
-	else if (strcmp(request, "/typeingtest") == 0)
-		res = readpage("./views/test.html", res_length);
-	else
-		res = readpage("./views/error.html", res_length);
+		res = readpage("yourhomepage.html file here!", res_length);
 
 	// use for making sure the entire page is sent
 	while ((res_sent = send(*new_fd, res, *res_length, 0)) < *res_length);
